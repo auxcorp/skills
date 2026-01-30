@@ -1,0 +1,11 @@
+{
+  "owner": "peterw",
+  "slug": "localrank-agent-skills",
+  "displayName": "LocalRank",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1769762324642,
+    "commit": null
+  },
+  "history": []
+}
