@@ -1,0 +1,11 @@
+{
+  "owner": "savorgbot-exe",
+  "slug": "focus-mode",
+  "displayName": "Focus Mode",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1769805392452,
+    "commit": null
+  },
+  "history": []
+}
