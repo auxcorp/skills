@@ -1,0 +1,11 @@
+{
+  "owner": "ray-778",
+  "slug": "host-ping-detect",
+  "displayName": "Host Ping Detector",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1769758557830,
+    "commit": null
+  },
+  "history": []
+}
