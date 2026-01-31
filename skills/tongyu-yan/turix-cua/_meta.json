@@ -3,11 +3,16 @@
   "slug": "turix-cua",
   "displayName": "TuriX-Computer-Use",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1769844350329,
-    "commit": "https://github.com/clawdbot/skills/commit/c08dd2b0f9b550cf5f54c2c79ce14e9960a9f6d6"
+    "version": "1.0.5",
+    "publishedAt": 1769863509046,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1769844350329,
+      "commit": "https://github.com/clawdbot/skills/commit/c08dd2b0f9b550cf5f54c2c79ce14e9960a9f6d6"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1769837282004,

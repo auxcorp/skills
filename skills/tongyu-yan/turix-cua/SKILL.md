@@ -44,6 +44,9 @@ skills/local/turix-mac/scripts/run_turix.sh "Open Chrome and go to github.com"
 skills/local/turix-mac/scripts/run_turix.sh --resume my-task-001
 ```
 
+> ⚠️ **Important**: The `./run_turix.sh` command does NOT automatically update the task in `config.json`. **You must manually edit `examples/config.json` and modify the `agent.task` field before running!**
+
+
 ### Tips for Effective Tasks
 
 **✅ Good Examples:**
