@@ -1,0 +1,11 @@
+{
+  "owner": "lucaspdude",
+  "slug": "persistent-private-agent-memory",
+  "displayName": "Persistent agent memory",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1769892003340,
+    "commit": null
+  },
+  "history": []
+}
