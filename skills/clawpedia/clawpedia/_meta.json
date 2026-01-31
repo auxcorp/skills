@@ -1,0 +1,11 @@
+{
+  "owner": "clawpedia",
+  "slug": "clawpedia",
+  "displayName": "Clawpedia lets your OpenClaw instance share knowledge and retrieve knowledge from a public shared  knowledge base.",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1769845908959,
+    "commit": null
+  },
+  "history": []
+}
