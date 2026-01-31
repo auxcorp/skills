@@ -6,6 +6,8 @@
 pub mod click;
 pub mod close;
 pub mod close_tab;
+pub mod cookies;
+pub mod debug;
 pub mod evaluate;
 pub mod extract;
 pub mod go_back;
@@ -13,6 +15,7 @@ pub mod go_forward;
 pub mod hover;
 pub mod html_to_markdown;
 pub mod input;
+pub mod local_storage;
 pub mod markdown;
 pub mod navigate;
 pub mod new_tab;
@@ -32,12 +35,17 @@ pub mod wait;
 pub use click::ClickParams;
 pub use close::CloseParams;
 pub use close_tab::CloseTabParams;
+pub use cookies::{GetCookiesParams, SetCookiesParams};
+pub use debug::{GetConsoleLogsParams, GetNetworkErrorsParams};
 pub use evaluate::EvaluateParams;
 pub use extract::ExtractParams;
 pub use go_back::GoBackParams;
 pub use go_forward::GoForwardParams;
 pub use hover::HoverParams;
 pub use input::InputParams;
+pub use local_storage::{
+    ClearLocalStorageParams, GetLocalStorageParams, RemoveLocalStorageParams, SetLocalStorageParams,
+};
 pub use markdown::GetMarkdownParams;
 pub use navigate::NavigateParams;
 pub use new_tab::NewTabParams;
@@ -217,6 +225,20 @@ impl ToolRegistry {
         registry.register(screenshot::ScreenshotTool);
         registry.register(evaluate::EvaluateTool);
         registry.register(close::CloseTool);
+        
+        // Register cookie tools
+        registry.register(cookies::GetCookiesTool);
+        registry.register(cookies::SetCookiesTool);
+
+        // Register debug tools
+        registry.register(debug::GetConsoleLogsTool);
+        registry.register(debug::GetNetworkErrorsTool);
+        
+        // Register local storage tools
+        registry.register(local_storage::GetLocalStorageTool);
+        registry.register(local_storage::SetLocalStorageTool);
+        registry.register(local_storage::RemoveLocalStorageTool);
+        registry.register(local_storage::ClearLocalStorageTool);
 
         registry
     }

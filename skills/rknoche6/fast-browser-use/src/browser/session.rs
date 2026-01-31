@@ -1,9 +1,9 @@
-use crate::{browser::config::{ConnectionOptions, LaunchOptions},
+use crate::{browser::{config::{ConnectionOptions, LaunchOptions}, debug::{ConsoleLog, NetworkError}},
             dom::DomTree,
             error::{BrowserError, Result},
-            tools::{ToolContext, ToolRegistry}};
-use headless_chrome::{Browser, Tab};
-use std::{ffi::OsStr, sync::Arc, time::Duration};
+            tools::{ToolContext, ToolRegistry, cookies::CookieParam}};
+use headless_chrome::{Browser, Tab, protocol::cdp::{Network::CookieParam as CdpCookieParam, types::Event}};
+use std::{ffi::OsStr, sync::{Arc, Mutex}, time::Duration};
 
 /// Wrapper for Tab and Element to maintain proper lifetime relationships
 pub struct TabElement<'a> {
@@ -18,9 +18,71 @@ pub struct BrowserSession {
 
     /// Tool registry for executing browser automation tools
     tool_registry: ToolRegistry,
+
+    /// Captured console logs
+    console_logs: Arc<Mutex<Vec<ConsoleLog>>>,
+
+    /// Captured network errors
+    network_errors: Arc<Mutex<Vec<NetworkError>>>,
 }
 
 impl BrowserSession {
+    /// Helper to setup event listeners on a tab
+    fn setup_tab_listeners(
+        tab: &Arc<Tab>,
+        console_logs: Arc<Mutex<Vec<ConsoleLog>>>,
+        network_errors: Arc<Mutex<Vec<NetworkError>>>
+    ) -> Result<()> {
+        // Enable domains
+        tab.enable_log().ok(); 
+        tab.enable_debugger().ok(); 
+        tab.enable_runtime().ok();
+        // tab.enable_network().ok(); // Not available directly
+        
+        let logs = console_logs.clone();
+        let errors = network_errors.clone();
+        
+        let _ = tab.add_event_listener(Arc::new(move |event: &Event| {
+            match event {
+                Event::RuntimeConsoleAPICalled(e) => {
+                    let text = e.params.args.iter()
+                        .map(|arg| arg.value.as_ref().map(|v: &serde_json::Value| v.to_string()).unwrap_or_else(|| "undefined".to_string()))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                        
+                    if let Ok(mut logs_guard) = logs.lock() {
+                        logs_guard.push(ConsoleLog {
+                            type_: format!("{:?}", e.params.Type),
+                            text,
+                            timestamp: e.params.timestamp,
+                        });
+                    }
+                },
+                Event::LogEntryAdded(e) => {
+                     if let Ok(mut logs_guard) = logs.lock() {
+                        logs_guard.push(ConsoleLog {
+                            type_: format!("{:?}", e.params.entry.level),
+                            text: e.params.entry.text.clone(),
+                            timestamp: e.params.entry.timestamp,
+                        });
+                    }
+                },
+                Event::NetworkLoadingFailed(e) => {
+                     if let Ok(mut errors_guard) = errors.lock() {
+                        errors_guard.push(NetworkError {
+                            url: "unknown".to_string(), // URL not directly available in LoadingFailed without tracking requests
+                            error_text: e.params.error_text.clone(),
+                            method: "unknown".to_string(),
+                            timestamp: e.params.timestamp,
+                        });
+                    }
+                },
+                _ => {}
+            }
+        }));
+        Ok(())
+    }
+
     /// Launch a new browser instance with the given options
     pub fn launch(options: LaunchOptions) -> Result<Self> {
         let mut launch_opts = headless_chrome::LaunchOptions::default();
@@ -54,16 +116,51 @@ impl BrowserSession {
         // Launch browser
         let browser = Browser::new(launch_opts).map_err(|e| BrowserError::LaunchFailed(e.to_string()))?;
 
-        browser.new_tab().map_err(|e| BrowserError::LaunchFailed(format!("Failed to create tab: {}", e)))?;
+        let console_logs = Arc::new(Mutex::new(Vec::new()));
+        let network_errors = Arc::new(Mutex::new(Vec::new()));
 
-        Ok(Self { browser, tool_registry: ToolRegistry::with_defaults() })
+        // Setup the initial tab
+        // headless_chrome creates one tab by default, but we can't easily get it without new_tab() or get_tabs()
+        // Wait, Browser::new() creates a browser.
+        // We usually do browser.new_tab() or get existing tabs.
+        // Let's get the tabs and setup listeners on them.
+        let mut tabs = browser.get_tabs().lock().map_err(|e| BrowserError::TabOperationFailed(e.to_string()))?.clone();
+        
+        if tabs.is_empty() {
+            browser.new_tab().map_err(|e| BrowserError::LaunchFailed(format!("Failed to create initial tab: {}", e)))?;
+            tabs = browser.get_tabs().lock().map_err(|e| BrowserError::TabOperationFailed(e.to_string()))?.clone();
+        }
+        
+        for tab in tabs {
+            Self::setup_tab_listeners(&tab, console_logs.clone(), network_errors.clone())?;
+        }
+
+        Ok(Self { 
+            browser, 
+            tool_registry: ToolRegistry::with_defaults(),
+            console_logs,
+            network_errors
+        })
     }
 
     /// Connect to an existing browser instance via WebSocket
     pub fn connect(options: ConnectionOptions) -> Result<Self> {
         let browser = Browser::connect(options.ws_url).map_err(|e| BrowserError::ConnectionFailed(e.to_string()))?;
+        
+        let console_logs = Arc::new(Mutex::new(Vec::new()));
+        let network_errors = Arc::new(Mutex::new(Vec::new()));
 
-        Ok(Self { browser, tool_registry: ToolRegistry::with_defaults() })
+        let tabs = browser.get_tabs().lock().map_err(|e| BrowserError::TabOperationFailed(e.to_string()))?.clone();
+        for tab in tabs {
+            Self::setup_tab_listeners(&tab, console_logs.clone(), network_errors.clone())?;
+        }
+
+        Ok(Self { 
+            browser, 
+            tool_registry: ToolRegistry::with_defaults(),
+            console_logs,
+            network_errors
+        })
     }
 
     /// Launch a browser with default options
@@ -82,6 +179,9 @@ impl BrowserSession {
             .browser
             .new_tab()
             .map_err(|e| BrowserError::TabOperationFailed(format!("Failed to create tab: {}", e)))?;
+            
+        Self::setup_tab_listeners(&tab, self.console_logs.clone(), self.network_errors.clone())?;
+            
         Ok(tab)
     }
 
@@ -132,6 +232,11 @@ impl BrowserSession {
                 }
                 Err(_) => continue,
             }
+        }
+
+        // If no tab is explicitly active, and we have tabs, return the first one
+        if let Some(tab) = tabs.first() {
+            return Ok(tab.clone());
         }
 
         Err(BrowserError::TabOperationFailed("No active tab found".to_string()))
@@ -235,6 +340,61 @@ impl BrowserSession {
         std::thread::sleep(std::time::Duration::from_millis(300));
 
         Ok(())
+    }
+
+    /// Get cookies from the current session
+    pub fn get_cookies(&self) -> Result<Vec<headless_chrome::protocol::cdp::Network::Cookie>> {
+        self.tab()?
+            .get_cookies()
+            .map_err(|e| BrowserError::ChromeError(format!("Failed to get cookies: {}", e)))
+    }
+
+    /// Set cookies for the current session
+    pub fn set_cookies(&self, cookies: Vec<CookieParam>) -> Result<()> {
+        let tab = self.tab()?;
+        
+        for cookie in cookies {
+            // Convert CookieParam to headless_chrome::protocol::cdp::Network::CookieParam
+            let param = CdpCookieParam {
+                name: cookie.name,
+                value: cookie.value,
+                url: cookie.url,
+                domain: cookie.domain,
+                path: cookie.path,
+                secure: cookie.secure,
+                http_only: cookie.http_only,
+                same_site: None, // Simplified mapping, expand if needed
+                expires: cookie.expires,
+                priority: None,
+                same_party: None,
+                source_scheme: None,
+                source_port: None,
+                partition_key: None,
+            };
+            
+            tab.set_cookies(vec![param])
+                .map_err(|e| BrowserError::ChromeError(format!("Failed to set cookie: {}", e)))?;
+        }
+        
+        Ok(())
+    }
+
+    /// Get console logs
+    pub fn get_console_logs(&self) -> Result<Vec<ConsoleLog>> {
+        let logs = self.console_logs.lock().map_err(|_| BrowserError::ToolExecutionFailed {
+            tool: "get_console_logs".into(),
+            reason: "Failed to lock logs mutex".into()
+        })?;
+        Ok(logs.clone())
+    }
+
+    /// Get network errors
+    pub fn get_network_errors(&self) -> Result<Vec<NetworkError>> {
+        let errors = self.network_errors.lock().map_err(|_| BrowserError::ToolExecutionFailed {
+            tool: "get_network_errors".into(),
+            reason: "Failed to lock errors mutex".into()
+        })?;
+        Ok(errors.clone())
     }
 
     /// Close the browser

@@ -4,6 +4,7 @@
 //! It includes configuration options, session management, and browser lifecycle control.
 
 pub mod config;
+pub mod debug;
 pub mod session;
 
 pub use config::{ConnectionOptions, LaunchOptions};

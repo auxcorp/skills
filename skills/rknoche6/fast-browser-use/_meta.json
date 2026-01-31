@@ -3,9 +3,15 @@
   "slug": "fast-browser-use",
   "displayName": "Fastest Browser Use",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1769871030320,
-    "commit": "https://github.com/clawdbot/skills/commit/3c95973de71c00016a90e217e6f963e68c3798bd"
+    "version": "1.0.1",
+    "publishedAt": 1769882056100,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1769871030320,
+      "commit": "https://github.com/clawdbot/skills/commit/3c95973de71c00016a90e217e6f963e68c3798bd"
+    }
+  ]
 }
