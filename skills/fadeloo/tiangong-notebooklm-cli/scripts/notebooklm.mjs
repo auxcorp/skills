@@ -42,8 +42,13 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const envRoot = (process.env.TIANGONG_WORKSPACE_ROOT ?? "").trim();
 const repoRoot = envRoot || findRepoRoot(scriptDir);
 
-const result = spawnSync("uv", ["tool", "run", "--from", "notebooklm-py", "notebooklm", ...args], {
-  cwd: repoRoot || process.cwd(),
+if (!repoRoot) {
+  console.error("Could not locate repo root. Set TIANGONG_WORKSPACE_ROOT to the workspace path.");
+  process.exit(1);
+}
+
+const result = spawnSync("uv", ["run", "tiangong-workspace", "notebooklm", ...args], {
+  cwd: repoRoot,
   stdio: "inherit",
 });
 

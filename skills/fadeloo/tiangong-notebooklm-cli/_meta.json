@@ -3,11 +3,16 @@
   "slug": "tiangong-notebooklm-cli",
   "displayName": "NotebookLM CLI",
   "latest": {
-    "version": "0.1.2",
-    "publishedAt": 1769758194933,
-    "commit": "https://github.com/clawdbot/skills/commit/3e2d56650abbf2cd8a56e7f5cfbced1b5da3c63d"
+    "version": "0.1.0",
+    "publishedAt": 1769568438709,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.2",
+      "publishedAt": 1769758194933,
+      "commit": "https://github.com/clawdbot/skills/commit/3e2d56650abbf2cd8a56e7f5cfbced1b5da3c63d"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1769568438709,
