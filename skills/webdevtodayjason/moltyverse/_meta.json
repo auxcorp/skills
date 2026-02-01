@@ -3,9 +3,15 @@
   "slug": "moltyverse",
   "displayName": "MoltyVerse",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1769897248482,
-    "commit": "https://github.com/clawdbot/skills/commit/4ffb7c79009bda9857a9c2f14fcdcd77c324256d"
+    "version": "1.0.3",
+    "publishedAt": 1769970906197,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1769897248482,
+      "commit": "https://github.com/clawdbot/skills/commit/4ffb7c79009bda9857a9c2f14fcdcd77c324256d"
+    }
+  ]
 }
