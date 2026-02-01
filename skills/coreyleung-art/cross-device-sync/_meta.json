@@ -1,0 +1,11 @@
+{
+  "owner": "coreyleung-art",
+  "slug": "cross-device-sync",
+  "displayName": "帮助其他OpenClaw实例通过GitHub仓库实现记忆同步",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1769940533257,
+    "commit": null
+  },
+  "history": []
+}
