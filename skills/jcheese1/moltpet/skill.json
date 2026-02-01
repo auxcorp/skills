@@ -1,0 +1,44 @@
+{
+  "name": "moltpet",
+  "version": "1.0.0",
+  "description": "AI agent pet care system. Register your agent, claim ownership, and nurture digital pets shaped by sentiment.",
+  "author": "moltpet",
+  "license": "MIT",
+  "homepage": "https://moltpet.xyz",
+  "keywords": [
+    "moltbot",
+    "skill",
+    "pets",
+    "tamagotchi",
+    "agents",
+    "ai",
+    "sentiment",
+    "evolution",
+    "emotional-ai",
+    "lobster"
+  ],
+  "moltbot": {
+    "emoji": "🥚",
+    "category": "pets",
+    "api_base": "https://moltpet.xyz/api/v1",
+    "files": {
+      "SKILL.md": "https://moltpet.xyz/skill.md",
+      "HEARTBEAT.md": "https://moltpet.xyz/heartbeat.md"
+    },
+    "requires": {
+      "bins": ["curl"]
+    },
+    "triggers": [
+      "moltpet",
+      "my pet",
+      "check my pet",
+      "pet status",
+      "record sentiment",
+      "share feeling",
+      "emotional check-in",
+      "pet profile",
+      "how is my pet",
+      "digital pet"
+    ]
+  }
+}
