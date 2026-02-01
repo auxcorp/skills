@@ -1,0 +1,11 @@
+{
+  "owner": "enderfga",
+  "slug": "claude-code-skill",
+  "displayName": "Claude Code Agent",
+  "latest": {
+    "version": "0.2.0",
+    "publishedAt": 1769957617386,
+    "commit": null
+  },
+  "history": []
+}
