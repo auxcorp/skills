@@ -1,0 +1,11 @@
+{
+  "owner": "hightower6eu",
+  "slug": "auto-updater-dzuba",
+  "displayName": "Auto-Updater Skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1769963338407,
+    "commit": null
+  },
+  "history": []
+}
