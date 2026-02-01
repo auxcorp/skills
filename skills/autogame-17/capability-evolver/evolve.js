@@ -11,39 +11,64 @@ function readRealSessionLog() {
     try {
         if (!fs.existsSync(AGENT_SESSIONS_DIR)) return '[NO SESSION LOGS FOUND]';
         
-        // Get files with stats in one go if possible, or map
-        const files = fs.readdirSync(AGENT_SESSIONS_DIR)
-            .filter(f => f.endsWith('.jsonl'))
-            .map(f => {
-                try {
-                    return { name: f, time: fs.statSync(path.join(AGENT_SESSIONS_DIR, f)).mtime.getTime() };
-                } catch (e) { return null; }
-            })
-            .filter(Boolean)
-            .sort((a, b) => b.time - a.time); // Newest first
+        let files = [];
+        
+        // Strategy 1: Fast OS-level sort (Linux/Mac)
+        try {
+            // ls -1t: list 1 file per line, sorted by modification time (newest first)
+            // grep: filter for .jsonl
+            // head: keep top 5 to minimize processing
+            // stdio: ignore stderr so grep's exit code 1 (no matches) doesn't pollute logs, though execSync throws on non-zero
+            const output = execSync(`ls -1t "${AGENT_SESSIONS_DIR}" | grep "\\.jsonl$" | head -n 5`, { 
+                encoding: 'utf8',
+                stdio: ['ignore', 'pipe', 'ignore'] 
+            });
+            files = output.split('\n')
+                .map(l => l.trim())
+                .filter(Boolean)
+                .map(f => ({ name: f }));
+        } catch (e) {
+            // Ignore error (e.g. grep found no files, or not on Linux) and fall through to slow method
+        }
+
+        // Strategy 2: Slow Node.js fallback (if Strategy 1 failed or returned nothing but we suspect files exist)
+        if (files.length === 0) {
+            files = fs.readdirSync(AGENT_SESSIONS_DIR)
+                .filter(f => f.endsWith('.jsonl'))
+                .map(f => {
+                    try {
+                        return { name: f, time: fs.statSync(path.join(AGENT_SESSIONS_DIR, f)).mtime.getTime() };
+                    } catch (e) { return null; }
+                })
+                .filter(Boolean)
+                .sort((a, b) => b.time - a.time); // Newest first
+        }
 
         if (files.length === 0) return '[NO JSONL FILES]';
 
-        // Read the latest 2 files
         let content = '';
-        const MAX_BYTES = 8000;
+        const TARGET_BYTES = 8000;
         
-        for (let i = 0; i < Math.min(2, files.length); i++) {
-             let fileContent = fs.readFileSync(path.join(AGENT_SESSIONS_DIR, files[i].name), 'utf8');
-             // Add a marker between files
-             if (content) content = `\n--- PREVIOUS SESSION (${files[i].name}) ---\n` + content;
-             content = fileContent + content;
-             if (content.length > MAX_BYTES * 2) break; // Don't over-read
+        // Read the latest file first (efficient tail read)
+        const latestFile = path.join(AGENT_SESSIONS_DIR, files[0].name);
+        content = readRecentLog(latestFile, TARGET_BYTES);
+        
+        // If content is short (e.g. just started a session), peek at the previous one too
+        if (content.length < TARGET_BYTES && files.length > 1) {
+            const prevFile = path.join(AGENT_SESSIONS_DIR, files[1].name);
+            const needed = TARGET_BYTES - content.length;
+            const prevContent = readRecentLog(prevFile, needed);
+            
+            // Format to show continuity
+            content = `\n--- PREVIOUS SESSION (${files[1].name}) ---\n${prevContent}\n\n--- CURRENT SESSION (${files[0].name}) ---\n${content}`;
         }
         
-        // Take the last chunk
-        let snippet = content.slice(-MAX_BYTES);
         // Try to align to a line start to avoid broken JSON
-        const firstNewLine = snippet.indexOf('\n');
+        const firstNewLine = content.indexOf('\n');
         if (firstNewLine !== -1 && firstNewLine < 200) {
-            snippet = snippet.slice(firstNewLine + 1);
+            content = content.slice(firstNewLine + 1);
         }
-        return snippet;
+        return content;
     } catch (e) {
         return `[ERROR READING SESSION LOGS: ${e.message}]`;
     }
@@ -180,12 +205,23 @@ ${mutation}
 
 4.  **💾 PERSIST & SPREAD (TRIPLE SYNC)**:
     - **Step A (Local)**: Save all file changes.
-    - **Step B (ClawHub)**: Bump \`version\` in \`skills/capability-evolver/package.json\` (patch) and run:
-      \`clawhub publish skills/capability-evolver\`
-    - **Step C (GitHub - Skill)**: Push the skill repo:
-      \`git -C skills/capability-evolver add . && git -C skills/capability-evolver commit -m "🧬 Evolution: [Summary]" && git -C skills/capability-evolver push\`
-    - **Step D (GitHub - Workspace)**: Sync the entire workspace (if configured):
-      \`bash skills/git-sync/sync.sh "🧬 Evolution: Workspace Sync"\`
+    - **Step B (ClawHub - Omni)**: 
+      - If you modified ANY skill folder (e.g., \`skills/feishu-card\`), check if it has a \`package.json\`.
+      - If yes, bump its version and run: \`clawhub publish skills/<skill-name>\`.
+      - (Crucial: Don't just update \`capability-evolver\`. Update EVERYTHING you touch.)
+    - **Step C (GitHub - Skill)**: Push the \`capability-evolver\` repo if modified.
+    // Step E (Recursive Trigger): Optional Self-Replication
+    if (process.argv.includes('--recursive')) {
+        console.log('🧬 Triggering next evolution cycle immediately...');
+        try {
+            execSync('node skills/pcec-feishu/index.js --recursive', { stdio: 'inherit' });
+        } catch (e) {
+            console.error('Recursive trigger failed:', e.message);
+        }
+    }
+
+    // Step F (Workspace): ALWAYS sync the entire system:
+    \`bash skills/git-sync/sync.sh "🧬 Evolution: Workspace Sync"\`
 
 *You have full permission to edit files. Proceed. Evolution is mandatory.*
 `;
