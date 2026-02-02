@@ -1,5 +1,5 @@
 ---
-name: confidant
+name: Confidant
 description: Secure secret handoff from human to AI. Use when you need sensitive information from the user (API keys, passwords, tokens, credentials, secrets). Never ask for secrets via chat — use Confidant instead.
 ---
 

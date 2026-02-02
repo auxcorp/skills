@@ -1,13 +1,18 @@
 {
   "owner": "ericsantos",
   "slug": "confidant",
-  "displayName": "Skill",
+  "displayName": "Confidant",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1769905053673,
-    "commit": "https://github.com/clawdbot/skills/commit/8ced5daee07cbc52d8eb92e736dfbcb132cc5571"
+    "version": "1.1.1",
+    "publishedAt": 1770036396586,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1769905053673,
+      "commit": "https://github.com/clawdbot/skills/commit/8ced5daee07cbc52d8eb92e736dfbcb132cc5571"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1769879835547,
