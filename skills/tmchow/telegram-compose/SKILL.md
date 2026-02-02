@@ -134,6 +134,45 @@ Long details go in expandable blocks.</blockquote>
 
 ---
 
+## Avoid Markdown Tables
+
+Markdown tables render too wide on mobile — often unreadable. Use these alternatives:
+
+**Vertical key-value (best for 2-3 columns):**
+```
+<pre>
+hzl-cli: 1.11.1 → 1.12.0
+skill:   1.0.5 → 1.0.6
+</pre>
+```
+
+**Compact list with separators:**
+```
+<pre>
+▸ hzl-cli │ 1.12.0 ✓
+▸ skill   │ 1.0.6 ✓
+</pre>
+```
+
+**Record cards (multi-field rows):**
+```
+<b>Ruby</b>
+Birthday: Jun 16 · Age: 11
+
+<b>Rhodes</b>
+Birthday: Oct 1 · Age: 8
+```
+
+**Bullet lists (simplest):**
+```
+• <b>hzl-cli:</b> 1.12.0
+• <b>skill:</b> 1.0.6
+```
+
+**Rule:** Reserve `<pre>` blocks for code/commands. For structured data, use bullets + bold or vertical key-value.
+
+---
+
 ## Limits
 
 - Message: 4,096 chars
