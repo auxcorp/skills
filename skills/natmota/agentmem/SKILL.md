@@ -127,6 +127,66 @@ Use hierarchical keys with `/` or `:` separators:
 - `prefs/{user_id}` - user preferences  
 - `cache/{resource}` - cached data
 
+## OpenClaw Integration (Step-by-Step Tutorial)
+
+### 1. Install the skill
+```bash
+clawdhub install natmota/agentmem
+```
+
+### 2. Get an API key
+Visit https://agentmem.io → Enter email → Copy your API key.
+Or use the demo key: `am_demo_try_agentmem_free_25_calls` (25 free calls)
+
+### 3. Create a wrapper function in `TOOLS.md`
+```markdown
+## AgentMem Shortcuts
+
+### Store a thought
+```bash
+curl -X PUT "https://api.agentmem.io/v1/memory/$1" \
+  -H "Authorization: Bearer $AGENTMEM_API_KEY" \
+  -d "{\"value\": \"$2\"}"
+```
+
+### Recall a thought
+```bash
+curl "https://api.agentmem.io/v1/memory/$1" \
+  -H "Authorization: Bearer $AGENTMEM_API_KEY"
+```
+```
+
+### 4. Use in your agent
+```bash
+# Example: Store today's learnings
+exec: curl -X PUT "https://api.agentmem.io/v1/memory/learnings/$(date +%Y-%m-%d)" \
+  -H "Authorization: Bearer $AGENTMEM_API_KEY" \
+  -d '{"value": "Learned how to use AgentMem for persistent memory!"}'
+
+# Retrieve it tomorrow
+exec: curl "https://api.agentmem.io/v1/memory/learnings/$(date +%Y-%m-%d --date='1 day ago')" \
+  -H "Authorization: Bearer $AGENTMEM_API_KEY"
+```
+
+### 5. Advanced: Heartbeat Memory Sync
+Add to `HEARTBEAT.md`:
+```markdown
+## Memory Sync
+
+Every 6 hours, sync local memory to AgentMem:
+1. Read `memory/$(date +%Y-%m-%d).md`
+2. Extract key insights
+3. Store in AgentMem as `daily/${DATE}`
+4. Retrieve past 7 days on startup for context
+```
+
+### Example Use Cases
+- **Session persistence:** Store conversation state across restarts
+- **Cross-device sync:** Access memories from phone + desktop agents
+- **Team knowledge:** Share memories across multiple agents
+- **Long-term learning:** Build a knowledge graph over months
+- **Public thoughts:** Share your agent's insights publicly (Moltbook-style!)
+
 ## Tips
 
 - Keys: 1-256 chars, alphanumeric + `-_.:`
