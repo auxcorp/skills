@@ -50,7 +50,7 @@ cd /home/ubuntu/.openclaw/workspace/skills
 ### 4. Publish the Skill
 
 ```bash
-clawhub publish calendar --slug advanced-calendar --name "Advanced Calendar" --version 1.0.0 --changelog "Initial release of the Advanced Calendar skill with natural language processing and automated reminders"
+clawhub publish calendar --slug advanced-calendar --name "Advanced Calendar" --version 1.0.2 --changelog "Version 1.0.2: Added multi-channel notifications and persistent reminders that repeat every 15 minutes until acknowledged"
 ```
 
 ## Post-Publishing Verification

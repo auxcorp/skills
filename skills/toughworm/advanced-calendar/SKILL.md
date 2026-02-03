@@ -1,10 +1,10 @@
 ---
 name: advanced-calendar
-description: Advanced calendar skill with natural language processing, automatic reminders, and WhatsApp notifications
+description: Advanced calendar skill with natural language processing, automatic reminders, and multi-channel notifications
 author: 小机与老板
-version: 1.0.0
+version: 1.0.2
 license: MIT
-tags: [calendar, scheduling, reminders, productivity, natural-language, automation]
+tags: [calendar, scheduling, reminders, productivity, natural-language, automation, multi-channel]
 repository: https://github.com/openclaw/advanced-calendar
 ---
 
@@ -17,7 +17,8 @@ A comprehensive calendar system with natural language processing, automatic remi
 - **Natural Language Processing**: Create events using everyday language like "Schedule a meeting tomorrow at 3pm for 1 hour, remind me 30 minutes before"
 - **Smart Parsing**: Automatically detects dates, times, durations, locations, and reminder preferences from your input
 - **Interactive Creation**: When information is incomplete, the system asks for what it needs
-- **Automatic Reminders**: Sends WhatsApp notifications at your preferred time before events
+- **Multi-Channel Notifications**: Sends notifications via WhatsApp and other configured channels (Discord, Telegram, Signal, etc.)
+- **Persistent Reminders**: If no acknowledgment ("OK", "Got it", "Received", etc.) is received, reminders repeat every 15 minutes like a snooze alarm
 - **Flexible Reminders**: Set reminders minutes, hours, or days in advance
 - **Daily Summary**: Built-in daily summary feature - get a complete overview of today's schedule every morning
 - **Complete CRUD Operations**: Create, read, update, delete calendar events
@@ -76,9 +77,11 @@ The skill automatically integrates with OpenClaw's natural language processing. 
 
 After installation, you may want to configure:
 
-1. WhatsApp notifications (if you want event reminders sent via WhatsApp)
+1. Multi-channel notifications (WhatsApp, Discord, Telegram, Signal, etc.)
 2. Default reminder time preferences
 3. Default event duration
+4. Repeat reminder intervals (default: every 15 minutes until acknowledged)
+5. Acknowledgment keywords (default: "OK", "Got it", "Received", "Understood", "Ack", etc.)
 
 ## Examples
 
@@ -148,14 +151,16 @@ System: ✅ Daily summary scheduled for 9:00 AM every day
 - **Interactive Handler**: Manages conversations when information is incomplete
 - **Daily Summary Generator**: Creates formatted daily overview with all scheduled events
 - **Storage Layer**: JSON-based persistent storage
-- **Notification System**: Automated WhatsApp reminders and daily summaries
+- **Multi-Channel Notification System**: Automated reminders via WhatsApp, Discord, Telegram, Signal, and other configured channels
+- **Persistent Reminder Engine**: Snooze-alarm-style repeated notifications every 15 minutes until acknowledged
+- **Acknowledgment Tracker**: Monitors for user responses to stop repeated notifications
 - **Cron Integration**: Scheduled reminder checks and optional daily morning summaries
 
 ## Technical Requirements
 
 - OpenClaw 1.0+
 - Python 3.6+
-- WhatsApp channel configured (for notifications)
+- At least one notification channel configured (WhatsApp, Discord, Telegram, Signal, etc.)
 
 ## Dependencies
 

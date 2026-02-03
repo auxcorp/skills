@@ -7,7 +7,8 @@ A sophisticated calendar management skill that understands natural language and 
 - **Natural Language Processing**: Talk to your calendar in everyday language
 - **Smart Event Creation**: Automatically extracts dates, times, durations, and reminders
 - **Interactive Assistance**: Asks for missing information when needed
-- **Automatic Reminders**: Sends WhatsApp notifications before events
+- **Multi-Channel Notifications**: Sends notifications via WhatsApp, Discord, Telegram, Signal, and other configured channels
+- **Persistent Reminders**: If no acknowledgment is received, reminders repeat every 15 minutes like a snooze alarm
 - **Flexible Reminders**: Set reminders minutes, hours, or days in advance
 - **Full CRUD Operations**: Create, read, update, delete calendar events
 - **Local Storage**: All data stored privately on your system
