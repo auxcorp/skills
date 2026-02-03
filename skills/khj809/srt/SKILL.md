@@ -60,6 +60,9 @@ Use the `/srt` slash command in OpenClaw:
 ```
 /srt search --departure "수서" --arrival "부산" --date "20260217" --time "140000"
 /srt reserve --train-id "1"
+/srt reserve --retry --timeout-minutes 60
+/srt reserve --retry --train-id "1,3,5" --timeout-minutes 60
+/srt log -n 30
 /srt list
 /srt cancel --reservation-id "RES123456"
 ```
@@ -85,8 +88,22 @@ uv run --with SRTrain python3 scripts/srt_cli.py search \
   --time "140000" \
   --passengers "adult=2"
 
-# Make reservation (uses train ID from search results)
+# Make reservation (single attempt)
 uv run --with SRTrain python3 scripts/srt_cli.py reserve --train-id "1"
+
+# Make reservation with automatic retry - all trains (background mode recommended)
+uv run --with SRTrain python3 scripts/srt_cli.py reserve --retry \
+  --timeout-minutes 60 \
+  --wait-seconds 10
+
+# Make reservation with automatic retry - specific trains only
+uv run --with SRTrain python3 scripts/srt_cli.py reserve --retry \
+  --train-id "1,3,5" \
+  --timeout-minutes 60 \
+  --wait-seconds 10
+
+# Check reservation log
+uv run --with SRTrain python3 scripts/srt_cli.py log -n 30
 
 # View bookings
 uv run --with SRTrain python3 scripts/srt_cli.py list --format json
@@ -125,7 +142,7 @@ uv run --with SRTrain python3 scripts/srt_cli.py cancel \
 
 ## Tools for AI Agent
 
-This skill provides 4 tools for managing SRT train reservations:
+This skill provides 5 tools for managing SRT train reservations:
 
 ### 1. search_trains
 Search for available trains between stations.
@@ -163,12 +180,38 @@ uv run --with SRTrain python3 scripts/srt_cli.py search \
 ```
 
 ### 2. make_reservation
-Reserve a specific train from search results.
+Reserve trains with optional automatic retry support.
 
-**Usage:**
+**Usage (single attempt):**
 ```bash
 uv run --with SRTrain python3 scripts/srt_cli.py reserve --train-id "1"
 ```
+
+**Usage (with retry):**
+```bash
+# Try all trains
+uv run --with SRTrain python3 scripts/srt_cli.py reserve --retry \
+  --timeout-minutes 60 \
+  --wait-seconds 10
+
+# Try specific trains only
+uv run --with SRTrain python3 scripts/srt_cli.py reserve --retry \
+  --train-id "1,3,5" \
+  --timeout-minutes 60 \
+  --wait-seconds 10
+```
+
+**Options:**
+- `--train-id`: Specific train(s) to reserve (comma-separated, e.g., "1" or "1,3,5"; omit to try all trains)
+- `--retry`: Enable automatic retry on failure
+- `--timeout-minutes`: Maximum retry duration in minutes (default: 60)
+- `--wait-seconds`: Wait time between retry attempts in seconds (default: 10)
+
+**Behavior with --retry:**
+1. Cycles through all available trains from search results
+2. Waits `--wait-seconds` between attempts (plus rate-limiting delays)
+3. Continues until success or timeout
+4. Logs progress to `~/.openclaw/tmp/srt/reserve.log`
 
 **Returns:** Reservation details with payment deadline
 
@@ -184,12 +227,15 @@ uv run --with SRTrain python3 scripts/srt_cli.py reserve --train-id "1"
     "arrival": "부산",
     "train_number": "301",
     "seat_number": "3A",
-    "payment_required": true
+    "payment_required": true,
+    "attempts": 12
   }
 }
 ```
 
-**Note:** Payment must be completed manually by user via SRT app/website.
+**Note:** 
+- Payment must be completed manually by user via SRT app/website
+- For retry mode, run in background with exec tool and periodically check logs
 
 ### 3. view_bookings
 List all current reservations.
@@ -242,6 +288,34 @@ uv run --with SRTrain python3 scripts/srt_cli.py cancel \
     "message": "Reservation cancelled successfully"
   }
 }
+```
+
+### 5. check_log
+Check the progress of reservation attempts (especially useful for retry mode).
+
+**Usage:**
+```bash
+uv run --with SRTrain python3 scripts/srt_cli.py log -n 30
+```
+
+**Returns:** Last N lines of reservation log file (`~/.openclaw/tmp/srt/reserve.log`)
+
+**Options:**
+- `-n, --lines`: Number of lines to show (default: 20)
+
+**Log Format Example:**
+```
+[2026-02-03 11:00:00] INFO: === SRT 예약 시작 (재시도 모드) ===
+[2026-02-03 11:00:00] INFO: 타임아웃: 60분
+[2026-02-03 11:00:00] INFO: 재시도 간격: 10초
+[2026-02-03 11:00:00] INFO: 대상 열차: 1,3,5 (총 3개)
+[2026-02-03 11:00:05] INFO: === 시도 #1 (열차 1/3) ===
+[2026-02-03 11:00:05] INFO: 🎫 예약 시도 중... (열차 301, 120500)
+[2026-02-03 11:00:06] WARN: ❌ 좌석 없음 (열차 301)
+[2026-02-03 11:00:06] INFO: ⏳ 10초 대기 후 재시도...
+[2026-02-03 11:00:26] INFO: === 시도 #2 (열차 2/3) ===
+...
+[2026-02-03 11:05:00] SUCCESS: ✅ 예약 성공!
 ```
 
 ## Error Handling
@@ -342,12 +416,68 @@ When users make requests in Korean, the AI should:
 
 **AI Actions:**
 1. Search trains
-2. Loop through available trains:
-   - Try to reserve
-   - If sold out, wait 3-5 seconds (rate limiting)
-   - Try next train
-   - Max 10 attempts
-3. Report success or exhaustion
+2. Start background retry:
+   ```bash
+   exec reserve --retry --timeout-minutes 60 --wait-seconds 10 (in background)
+   ```
+3. Create monitoring cron job (isolated session + agentTurn):
+   ```bash
+   cron add --job '{
+     "schedule": {"kind": "every", "everyMs": 120000},
+     "payload": {
+       "kind": "agentTurn",
+       "message": "Check SRT retry log and report progress",
+       "deliver": true,
+       "channel": "discord"
+     },
+     "sessionTarget": "isolated",
+     "enabled": true
+   }'
+   cron wake --mode "now"
+   ```
+4. Inform user: "백그라운드 재시도 시작. 2분마다 업데이트합니다."
+
+## ⚠️ Background Retry Monitoring
+
+**MANDATORY:** Use isolated session + agentTurn cron jobs for monitoring `reserve --retry`.
+
+### Setup
+
+```bash
+# 1. Start background retry
+exec reserve --retry --timeout-minutes 60 (background)
+
+# 2. Create monitoring cron (isolated + agentTurn)
+cron add --job '{
+  "schedule": {"kind": "every", "everyMs": 120000},
+  "payload": {
+    "kind": "agentTurn",
+    "message": "Check `srt_cli.py log -n 30`, parse progress, report to user. Delete cron if done.",
+    "deliver": true,
+    "channel": "discord"
+  },
+  "sessionTarget": "isolated",
+  "enabled": true
+}'
+
+# 3. Wake immediately
+cron wake --mode "now"
+```
+
+### Requirements
+
+- **sessionTarget:** `"isolated"` (NOT "main")
+- **payload.kind:** `"agentTurn"` (NOT "systemEvent")
+- **payload.deliver:** `true`
+- **Schedule:** Every 1-3 minutes depending on task duration
+- **Wake:** Always call `cron wake --mode "now"` after creating job
+
+### Why
+
+- `systemEvent` in main session doesn't trigger agent action
+- `agentTurn` in isolated session actually executes and reports
+- Prevents blocking, message batching, and silent monitoring
+
 
 ### Scenario 3: Check and Cancel
 **User:** "내 예약 확인해주고 제일 빠른거 취소해줘"
@@ -446,8 +576,14 @@ For issues or questions:
 
 ## Version History
 
-- **0.1.2** - Add `--all` flag for sold-out trains
-  - Search now supports `--all` to include sold-out trains (passes `available_only=False`)
+- **0.1.3** - Retry improvements and monitoring requirements
+  - Unified `reserve` command with `--retry` flag
+  - Added `--timeout-minutes` for time-based retry limits (default: 60)
+  - Added `--train-id` support for comma-separated multiple trains (e.g., "1,3,5")
+  - Changed `--wait-seconds` default from 20 to 10 seconds
+  - Search includes sold-out trains by default (`available_only=False`)
+  - **Monitoring:** Isolated session + agentTurn cron jobs required for background retry
+- **0.1.2** - Add `--all` flag for sold-out trains (deprecated)
 - **0.1.1** - Use `uv` for dependency management
   - Replace venv/pip with `uv run --with SRTrain`
   - Environment variables only for credentials (remove config file support)
